@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - app-net
+
+  employee-service:
+    build: ./employee-service
+    container_name: employee-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-net
+    entrypoint: ["sh", "-c", "sleep 20 && java -jar employee.jar"]
+
+  laptop-service:
+    build: ./laptop-service
+    container_name: laptop-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - rabbitmq
+    networks:
+      - app-net
+    entrypoint: ["sh", "-c", "sleep 20 && java -jar laptop.jar"]
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - employee-service
+      - laptop-service
+    networks:
+      - app-net
+    entrypoint: ["sh", "-c", "sleep 20 && java -jar app.jar"]
+
+networks:
+  app-net:
+    driver: bridge
