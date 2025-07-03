@@ -23,6 +23,7 @@ jobs:
           cd employee-service && mvn clean package -DskipTests && cd ..
           cd laptop-service && mvn clean package -DskipTests && cd ..
           cd api-gateway && mvn clean package -DskipTests && cd ..
+          cd discovery-server && mvn clean package -DskipTests && cd ..
 
       - name: 🐳 Login to Docker Hub
         uses: docker/login-action@v2
@@ -40,3 +41,6 @@ jobs:
 
           docker build -t ${{ secrets.DOCKER_USERNAME }}/springboot-microservices-gateway:latest ./api-gateway
           docker push ${{ secrets.DOCKER_USERNAME }}/springboot-microservices-gateway:latest
+
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/springboot-microservices-discovery:latest ./discovery-server
+          docker push ${{ secrets.DOCKER_USERNAME }}/springboot-microservices-discovery:latest
