@@ -2,12 +2,33 @@ version: '3.8'
 
 services:
 
+  discovery-server:
+    image: ravikiran134/springboot-microservices-discovery:latest
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - app-net
+
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: practice
+    ports:
+      - "3306:3306"
+    networks:
+      - app-net
+    volumes:
+      - mysql-data:/var/lib/mysql
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -15,45 +36,59 @@ services:
       - app-net
 
   employee-service:
-    build: ./employee-service
+    image: ravikiran134/springboot-microservices-employee:latest
     container_name: employee-service
     ports:
       - "8082:8082"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/practice
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123456
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
     depends_on:
+      - mysql
       - rabbitmq
+      - discovery-server
     networks:
       - app-net
-    entrypoint: ["sh", "-c", "sleep 20 && java -jar employee.jar"]
 
   laptop-service:
-    build: ./laptop-service
+    image: ravikiran134/springboot-microservices-laptop:latest
     container_name: laptop-service
     ports:
       - "8083:8083"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/practice
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123456
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
     depends_on:
+      - mysql
       - rabbitmq
+      - discovery-server
     networks:
       - app-net
-    entrypoint: ["sh", "-c", "sleep 20 && java -jar laptop.jar"]
 
   api-gateway:
-    build: ./api-gateway
+    image: ravikiran134/springboot-microservices-gateway:latest
     container_name: api-gateway
     ports:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
     depends_on:
       - employee-service
       - laptop-service
+      - discovery-server
     networks:
       - app-net
-    entrypoint: ["sh", "-c", "sleep 20 && java -jar app.jar"]
 
 networks:
   app-net:
     driver: bridge
+
+volumes:
+  mysql-data:
